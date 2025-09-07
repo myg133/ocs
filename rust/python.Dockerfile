@@ -1,22 +1,15 @@
-FROM gitpod/openvscode-server:latest
-
-ENV OPENVSCODE_SERVER_ROOT="/home/.openvscode-server"
-ENV OPENVSCODE="${OPENVSCODE_SERVER_ROOT}/bin/openvscode-server"
+FROM myg133/openvscode-server:base-latest
 
 # 使用下面命令安装系统级依赖，也可以在项目级镜像中进行构建
-# USER root
-# RUN # install depl
-# USER openvscode-server
+USER root
+RUN sudo apt-get update \
+    && sudo apt-get install -y --no-install-recommends \
+    curl build-essential gcc make
+# 清理缓存
+    && sudo apt-get clean && sudo rm -rf /var/cache/apt/* && sudo rm -rf /var/lib/apt/lists/* && sudo rm -rf /tmp/*
+USER openvscode-server
+
 
 SHELL ["/bin/bash", "-c"]
-RUN mkdir -p "${HOME}/project" && \
-    ${OPENVSCODE} --install-extension gitpod.gitpod-theme && \
-    ${OPENVSCODE} --install-extension donjayamanne.githistory && \
-    ${OPENVSCODE} --install-extension mhutchie.git-graph && \
-    ${OPENVSCODE} --install-extension jackiotyu.git-worktree-manager && \
-    ${OPENVSCODE} --install-extension EditorConfig.EditorConfig && \
-    ${OPENVSCODE} --install-extension oderwat.indent-rainbow && \
-    ${OPENVSCODE} --install-extension Gruntfuggly.todo-tree && \
-    ${OPENVSCODE} --install-extension dracula-theme.theme-dracula && \
-    ${OPENVSCODE} --install-extension PKief.material-icon-theme && \
+RUN ${OPENVSCODE} --install-extension gitpod.gitpod-theme && \
     ${OPENVSCODE} --install-extension formulahendry.code-runner
