@@ -2,5 +2,6 @@
     "editor.fontSize": 16,
     "editor.fontFamily": "'JetBrains Mono', Consolas, 'Courier New', monospace",
     "workbench.iconTheme": "material-icon-theme",
-    "workbench.colorTheme": "Dracula Theme Soft"
+    "workbench.colorTheme": "Dracula Theme Soft",
+    "extensions.ignoreRecommendations": true
 }
