@@ -19,4 +19,7 @@ RUN mkdir -p "${HOME}/project" && \
     ${OPENVSCODE} --install-extension Gruntfuggly.todo-tree && \
     ${OPENVSCODE} --install-extension dracula-theme.theme-dracula && \
     ${OPENVSCODE} --install-extension PKief.material-icon-theme && \
-    ${OPENVSCODE} --install-extension formulahendry.code-runner
+    ${OPENVSCODE} --install-extension formulahendry.code-runner && \
+    ${OPENVSCODE} --install-extension fill-labs.dependi
+
+COPY ./base.settings.json /home/workspace/.openvscode-server/data/Machine/settings.json
