@@ -11,5 +11,7 @@ USER openvscode-server
 
 
 SHELL ["/bin/bash", "-c"]
-RUN ${OPENVSCODE} --install-extension gitpod.gitpod-theme && \
-    ${OPENVSCODE} --install-extension formulahendry.code-runner
+RUN ${OPENVSCODE} --install-extension PulkitGangwar.nextjs-snippets && \
+    ${OPENVSCODE} --install-extension esbenp.prettier-vscode && \
+    ${OPENVSCODE} --install-extension dbaeumer.vscode-eslint && \
+    ${OPENVSCODE} --install-extension bradlc.vscode-tailwindcss

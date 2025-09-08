@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ovss-config
+  name: dno-ovss-config
 data:
   settings.json: |
     {
@@ -20,23 +20,23 @@ metadata:
   name: openvscode-server
 spec:
   containers:
-  - name: base-ovss
-    image: myg133/openvscode-server:base-latest
+  - name: dno-ovss
+    image: myg133/openvscode-server:deno
     ports:
     - name:
       containerPort: 3000
       hostPort: 3000
     volumeMounts:
-    - name: ovss-config-volume  #挂载卷的名称, ovss 配置文件挂载
+    - name: dno-ovss-config-volume  #挂载卷的名称, ovss 配置文件挂载
       mountPath: /home/workspace/.openvscode-server/data/Machine/settings.json  #挂载到容器中的位置
       subPath: settings.json
-    - name: project-volume  #挂载卷的名称, 项目目录挂载
+    - name: dno-project-volume  #挂载卷的名称, 项目目录挂载
       mountPath: /home/workspace/project  #项目代码目录
   volumes: #创建卷
-  - name: ovss-config-volume #创建的卷名称
+  - name: dno-ovss-config-volume #创建的卷名称
     configMap:  #从configMap中挂载
-      name: ovss-config #挂载configMap中redis-config
-  - name: project-volume #创建的卷名称
+      name: dno-ovss-config #挂载configMap中redis-config
+  - name: dno-project-volume #创建的卷名称
     hostPath:  #从configMap中挂载
       # demo: E:\MyCode\openvscode-server
       path: /mnt/e/MyCode/openvscode-server

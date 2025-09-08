@@ -2,14 +2,13 @@ FROM myg133/openvscode-server:base-latest
 
 # 使用下面命令安装系统级依赖，也可以在项目级镜像中进行构建
 USER root
-RUN sudo apt-get update \
-    && sudo apt-get install -y --no-install-recommends \
-    curl build-essential gcc make
-# 清理缓存
-    && sudo apt-get clean && sudo rm -rf /var/cache/apt/* && sudo rm -rf /var/lib/apt/lists/* && sudo rm -rf /tmp/*
+ENV XDG_BIN_HOME=/opt/uv/bin
+ENV PATH=$XDG_BIN_HOME:$PATH
+RUN curl -LsSf https://astral.sh/uv/install.sh | sudo -E sh -s -- --no-modify-path
 USER openvscode-server
-
-
+# 安装插件
 SHELL ["/bin/bash", "-c"]
-RUN ${OPENVSCODE} --install-extension gitpod.gitpod-theme && \
-    ${OPENVSCODE} --install-extension formulahendry.code-runner
+RUN ${OPENVSCODE} --install-extension ntluong95.positron-python-package-manager && \
+    ${OPENVSCODE} --install-extension ms-python.debugpy && \
+    ${OPENVSCODE} --install-extension ms-toolsai.jupyter && \
+    ${OPENVSCODE} --install-extension ms-python.isort
