@@ -10,15 +10,15 @@ RUN sudo apt-get update \
     && sudo rm -rf /var/cache/apt/* \
     && sudo rm -rf /var/lib/apt/lists/* \
     && sudo rm -rf /tmp/*
+ENV RUSTUP_HOME=/opt/rust/rustup
+ENV CARGO_HOME=/opt/rust/cargo
+ENV PATH=/opt/rust/cargo/bin:$PATH
+RUN curl https://sh.rustup.rs -sSf | sudo -E sh -s -- --default-toolchain stable -y --no-modify-path
 USER openvscode-server
 # 安装插件
 SHELL ["/bin/bash", "-c"]
 RUN ${OPENVSCODE} --install-extension rust-lang.rust-analyzer && \
     ${OPENVSCODE} --install-extension tamasfe.even-better-toml && \
     ${OPENVSCODE} --install-extension vadimcn.vscode-lldb
-# 安装工具
-ENV RUSTUP_HOME=/opt/rust
-ENV CARGO_HOME=/opt/rust
-RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain stable -y --no-modify-path
-ENV PATH=/opt/rust/bin:$PATH
+
 
