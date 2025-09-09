@@ -9,6 +9,7 @@ USER openvscode-server
 # 安装插件
 SHELL ["/bin/bash", "-c"]
 RUN ${OPENVSCODE} --install-extension ntluong95.positron-python-package-manager && \
+    ${OPENVSCODE} --install-extension detachhead.basedpyright && \
     ${OPENVSCODE} --install-extension ms-python.debugpy && \
     ${OPENVSCODE} --install-extension ms-toolsai.jupyter && \
     ${OPENVSCODE} --install-extension ms-python.isort
