@@ -1,14 +1,15 @@
 FROM myg133/openvscode-server:base-latest
 
 # 使用下面命令安装系统级依赖，也可以在项目级镜像中进行构建
+ARG NODE_VERSION=22
 USER root
-RUN sudo apt-get update \
-    && sudo apt-get install -y --no-install-recommends \
-    curl build-essential gcc make
-# 清理缓存
-    && sudo apt-get clean && sudo rm -rf /var/cache/apt/* && sudo rm -rf /var/lib/apt/lists/* && sudo rm -rf /tmp/*
+ENV NVM_DIR=/opt/nvm/bin
+ENV PATH=$NVM_DIR:$PATH
+ENV PROFILE=/etc/bash.bashrc
+RUN sudo -E mkdir -p $NVM_DIR
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | sudo -E bash
+RUN sudo -E bash -c "source $NVM_DIR/nvm.sh && nvm install $NODE_VERSION"
 USER openvscode-server
-
 
 SHELL ["/bin/bash", "-c"]
 RUN ${OPENVSCODE} --install-extension PulkitGangwar.nextjs-snippets && \
