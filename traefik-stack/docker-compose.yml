@@ -35,13 +35,14 @@ services:
       - DASHBOARD_HOST=${DASHBOARD_HOST}
     # ---- Traefik 自身的 dashboard 路由 ----
     # 通过 DASHBOARD_HOST 域名访问, 走 HTTPS 自动用静态 cert
+    # 走 api@internal (Traefik 内置 API service, JSON 端点)
     # 不加鉴权, dev 场景内网访问够用; 后续加 BasicAuth 改 labels 即可
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.traefik-dashboard.rule=Host(`${DASHBOARD_HOST:?DASHBOARD_HOST required}`)"
       - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
       - "traefik.http.routers.traefik-dashboard.tls=true"
-      - "traefik.http.services.traefik-dashboard.loadbalancer.server.port=8080"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
     networks:
       - traefik-net
     healthcheck:

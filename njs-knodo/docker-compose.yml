@@ -43,13 +43,14 @@ services:
       # 项目代码 (NFS, 172.25.93.9:/data-volumes, njs 当前是空的, 备用)
       - njs-knodo-project:/home/workspace/project
     # ---- Traefik 路由 ----
-    # NJS_KNODO_HOST 在 .env 里设, 例: njs-knodo.example.com
+    # NJS_KNODO_HOST 在 .env 里设, 例: njs-knodo.localdev.anspire.cn
+    # 证书用 traefik.yml 里的 tls.certificates 静态加载 (acme.sh 签的 *.localdev.anspire.cn),
+    # 不引用 certresolver (本环境没配 certificatesResolvers, 引用会报 warning)
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.njs-knodo-ovss.rule=Host(`${NJS_KNODO_HOST:?NJS_KNODO_HOST required}`)"
       - "traefik.http.routers.njs-knodo-ovss.entrypoints=websecure"
       - "traefik.http.routers.njs-knodo-ovss.tls=true"
-      - "traefik.http.routers.njs-knodo-ovss.tls.certresolver=letsencrypt"
       - "traefik.http.services.njs-knodo-ovss.loadbalancer.server.port=3000"
       - "traefik.http.routers.njs-knodo-ovss.middlewares=secure-headers@file"
     networks:

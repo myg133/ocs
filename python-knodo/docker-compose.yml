@@ -45,13 +45,14 @@ services:
       - py-knodo-project:/home/workspace/project
       # settings.json 已经在 base 镜像里烤好了, 不需要再挂
     # ---- Traefik 路由 ----
-    # PY_KNODO_HOST 在 .env 里设, 例: py-knodo.example.com
+    # PY_KNODO_HOST 在 .env 里设, 例: py-knodo.localdev.anspire.cn
+    # 证书用 traefik.yml 里的 tls.certificates 静态加载 (acme.sh 签的 *.localdev.anspire.cn),
+    # 不引用 certresolver (本环境没配 certificatesResolvers, 引用会报 warning)
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.py-knodo-ovss.rule=Host(`${PY_KNODO_HOST:?PY_KNODO_HOST required}`)"
       - "traefik.http.routers.py-knodo-ovss.entrypoints=websecure"
       - "traefik.http.routers.py-knodo-ovss.tls=true"
-      - "traefik.http.routers.py-knodo-ovss.tls.certresolver=letsencrypt"
       - "traefik.http.services.py-knodo-ovss.loadbalancer.server.port=3000"
       - "traefik.http.routers.py-knodo-ovss.middlewares=secure-headers@file"
     networks:
