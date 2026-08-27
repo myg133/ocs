@@ -1,0 +1,84 @@
+# OCS + knodo 本地测试用 docker-compose
+#
+# ⚠️ 路径说明: 如果你的 docker daemon 在远端 (本机只是 CLI), 那下面所有 bind mount
+# 路径都是 daemon 端的路径, 不是 Windows 端的。最简单办法: 不挂项目目录, 进 openvscode
+# 终端 git clone。knodo 状态用 named volume 持久化, 不受路径影响。
+#
+# 用法:
+#   cp .env.example .env
+#   vi .env            # 填 KNODO_INSTALL_URL 或 BACKEND_WS_URL+API_TOKEN
+#   docker compose up -d
+#   docker compose logs -f
+#   浏览器: http://localhost:3000
+#
+# 验证:
+#   curl http://localhost:9910/health          # knodo-agent 健康
+#   docker compose exec openvscode-server bash /usr/local/bin/test-knodo-integration.sh
+
+services:
+  openvscode-server:
+    image: myg133/openvscode-server:python-knodo
+    container_name: ocs-py-knodo
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"   # openvscode-server web UI
+      - "9910:9910"   # knodo-agent 健康/管理
+    environment:
+      # ---- knodo 凭证 (entrypoint.sh 三选一, 默认只用第 1 个) ----
+      # 路径 1: 首次激活 (24h 有效, 激活后写到 named volume, 后续自动复用)
+      - KNODO_INSTALL_URL=${KNODO_INSTALL_URL:-}
+      # 路径 2: 长期凭证 (只在 named volume 丢失时需要手动填, 见 .env.example)
+      - BACKEND_WS_URL=${BACKEND_WS_URL:-}
+      - API_TOKEN=${API_TOKEN:-}
+      # 通用
+      - KNODO_AGENT_PORT=9910
+      # 可选代理
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-}
+    volumes:
+      # knodo 状态 (NFS, 替代原 named volume)
+      - py-knodo-knodo:/home/workspace/.knodo
+      # 项目代码 (NFS, 172.25.93.9:/data-volumes, 已从旧容器 tar 出来解压)
+      - py-knodo-project:/home/workspace/project
+      # settings.json 已经在 base 镜像里烤好了, 不需要再挂
+    # ---- Traefik 路由 ----
+    # PY_KNODO_HOST 在 .env 里设, 例: py-knodo.example.com
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.py-knodo-ovss.rule=Host(`${PY_KNODO_HOST:?PY_KNODO_HOST required}`)"
+      - "traefik.http.routers.py-knodo-ovss.entrypoints=websecure"
+      - "traefik.http.routers.py-knodo-ovss.tls=true"
+      - "traefik.http.routers.py-knodo-ovss.tls.certresolver=letsencrypt"
+      - "traefik.http.services.py-knodo-ovss.loadbalancer.server.port=3000"
+      - "traefik.http.routers.py-knodo-ovss.middlewares=secure-headers@file"
+    networks:
+      - traefik-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/healthz || exit 0"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  py-knodo-knodo:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=172.25.93.9,rw,sync,hard,intr,noatime
+      device: ":/data-volumes/py-knodo/knodo"
+  py-knodo-project:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=172.25.93.9,rw,sync,hard,intr,noatime
+      device: ":/data-volumes/py-knodo/project"
+
+networks:
+  traefik-net:
+    external: true
+    name: traefik-net

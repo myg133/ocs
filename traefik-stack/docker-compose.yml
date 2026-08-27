@@ -1,0 +1,61 @@
+# =============================================================================
+# Traefik 反向代理
+# - 自动从 docker.sock 发现带 label 的服务
+# - HTTPS 证书: acme.sh 静态加载 (覆盖 *.localdev.anspire.cn + localdev.anspire.cn)
+# - 证书签发: 走 ZeroSSL DNS-01 (老 DNSPod NS 不支持 LE 强制的 DNSSEC 验证)
+# - Dashboard 走自己的域名 (DASHBOARD_HOST), 也保留 127.0.0.1:8080 应急
+#
+# 首次启动:
+#   1. cp .env.example .env, 填 DASHBOARD_HOST
+#   2. 在 acme.sh 申请好 cert 落到 ./certs/wildcard.{fullchain.crt,key}
+#   3. docker network create traefik-net   (共享网络, knodo 容器也要加入)
+#   4. docker compose up -d
+#   5. 浏览器开 https://${DASHBOARD_HOST} 看 dashboard
+#   6. 应急通道: http://127.0.0.1:8080 (仅本机, 无域名也能看)
+# =============================================================================
+
+services:
+  traefik:
+    image: traefik:v3.7
+    container_name: traefik
+    restart: unless-stopped
+    command:
+      - "--configFile=/etc/traefik/traefik.yml"
+    ports:
+      - "80:80"       # HTTP (重定向到 HTTPS)
+      - "443:443"     # HTTPS
+      - "127.0.0.1:8080:8080"   # Dashboard (仅本机, 应急用)
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./dynamic:/dynamic:ro
+      - ./certs:/certs:ro                            # acme.sh 申请的静态 cert (ZeroSSL)
+    environment:
+      # dashboard 域名 (Traefik 自身 label 路由用)
+      - DASHBOARD_HOST=${DASHBOARD_HOST}
+    # ---- Traefik 自身的 dashboard 路由 ----
+    # 通过 DASHBOARD_HOST 域名访问, 走 HTTPS 自动用静态 cert
+    # 不加鉴权, dev 场景内网访问够用; 后续加 BasicAuth 改 labels 即可
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`${DASHBOARD_HOST:?DASHBOARD_HOST required}`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.tls=true"
+      - "traefik.http.services.traefik-dashboard.loadbalancer.server.port=8080"
+    networks:
+      - traefik-net
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  traefik-net:
+    external: true
+    name: traefik-net

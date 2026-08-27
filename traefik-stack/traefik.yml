@@ -1,0 +1,60 @@
+# =============================================================================
+# Traefik 静态配置
+# HTTPS 证书: 走 acme.sh 静态加载 (走 ZeroSSL DNS-01, lego v4 已删老 DNSPod provider)
+# 自动服务发现: 读 /var/run/docker.sock, 找带 traefik.enable=true label 的容器
+#
+# ⚠️ 部署到 Linux 后, 文件一定要是 LF, 不能是 CRLF (Windows 写文件默认 CRLF)
+# 如果 sed -i 's/\r$//' 没清干净, 用 cat heredoc 重写 (见 README)
+# =============================================================================
+
+api:
+  dashboard: true
+  insecure: true                    # dashboard 走 8080, 不上 TLS (内网用)
+
+# 显式开 ping endpoint (docker healthcheck 用的)
+ping:
+  entryPoint: traefik
+
+entryPoints:
+  # Traefik 自身 dashboard + ping
+  traefik:
+    address: ":8080"
+
+  # HTTP (80) → 自动 301 重定向到 HTTPS
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+
+  # HTTPS (443) - 主流量入口
+  websecure:
+    address: ":443"
+
+# 静态 TLS cert (acme.sh 申请, 90 天手动续)
+# cert 路径: /certs/wildcard.fullchain.crt, /certs/wildcard.key
+# 覆盖所有 *.localdev.anspire.cn + localdev.anspire.cn
+tls:
+  certificates:
+    - certFile: /certs/wildcard.fullchain.crt
+      keyFile: /certs/wildcard.key
+
+providers:
+  docker:
+    endpoint: unix:///var/run/docker.sock
+    exposedByDefault: false
+    network: traefik-net
+
+  file:
+    filename: /dynamic/middlewares.yml
+    watch: true
+
+# 日志
+log:
+  level: INFO
+  format: common
+
+accessLog:
+  format: common

@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: njs-knodo-ovss-config
+data:
+  settings.json: |
+    {
+        "editor.fontSize": 16,
+        "editor.fontFamily": "'JetBrains Mono', Consolas, 'Courier New', monospace",
+        "workbench.iconTheme": "material-icon-theme",
+        "workbench.colorTheme": "Dracula Theme Soft",
+        "extensions.ignoreRecommendations": true
+    }
+
+---
+
+# knodo 凭证 ConfigMap (跟 pod 一起 apply)
+# 二选一:
+#   - KNODO_INSTALL_URL: 首次激活用, 24h 有效
+#   - BACKEND_WS_URL + API_TOKEN: 长期凭证 (named volume 丢失时兜底)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: njs-knodo-config
+data:
+  KNODO_INSTALL_URL: "https://anchnet.knodo.vip/api/v1/public/install/local/REPLACE_WITH_YOUR_TOKEN?origin=https%3A%2F%2Fanchnet.knodo.vip"
+  # BACKEND_WS_URL: "wss://anchnet.knodo.vip/agent/..."
+  # API_TOKEN: "eyJhbGciOi..."
+  KNODO_AGENT_PORT: "9910"
+  # 可选: HTTP_PROXY / HTTPS_PROXY / NO_PROXY
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: openvscode-server
+spec:
+  containers:
+  - name: njs-knodo-ovss
+    image: myg133/openvscode-server:njs-knodo
+    ports:
+    - name: ovss
+      containerPort: 3000
+      hostPort: 3000
+    - name: knodo-agent
+      containerPort: 9910
+      hostPort: 9910
+    envFrom:
+    - configMapRef:
+        name: njs-knodo-config
+    volumeMounts:
+    - name: ovss-config-volume
+      mountPath: /home/workspace/.openvscode-server/data/Machine/settings.json
+      subPath: settings.json
+    - name: project-volume
+      mountPath: /home/workspace/project
+    - name: knodo-data-volume
+      mountPath: /home/workspace/.knodo
+  volumes:
+  - name: ovss-config-volume
+    configMap:
+      name: njs-knodo-ovss-config
+  - name: project-volume
+    hostPath:
+      path: /mnt/e/MyCode/openvscode-server
+      type: Directory
+  - name: knodo-data-volume
+    hostPath:
+      path: /var/lib/knodo-data/njs-knodo
+      type: DirectoryOrCreate

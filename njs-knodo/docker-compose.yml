@@ -1,0 +1,82 @@
+# OCS + knodo 本地测试用 docker-compose (Node.js / 前端变体)
+#
+# ⚠️ 路径说明: 如果你的 docker daemon 在远端, bind mount 路径是 daemon 端路径。
+# 简化办法: 不挂项目目录, 进 openvscode 终端 git clone。
+#
+# 用法:
+#   cp .env.example .env
+#   vi .env            # 填 KNODO_INSTALL_URL
+#   docker compose up -d
+#   docker compose logs -f
+#   浏览器: http://localhost:3001   (默认, 跟 python-knodo 错开)
+#
+# 验证:
+#   curl http://localhost:9911/health
+#   docker compose exec openvscode-server bash /usr/local/bin/test-knodo-integration.sh
+
+services:
+  openvscode-server:
+    image: myg133/openvscode-server:njs-knodo
+    container_name: ocs-njs-knodo
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      # host 端口默认错开 python-knodo (3000/9910), 避免同时跑冲突
+      # 想跟 python-knodo 共用主机, 改这里或 .env 里 OVSS_HOST_PORT / KNODO_HOST_PORT
+      - "${OVSS_HOST_PORT:-3001}:3000"   # openvscode-server web UI
+      - "${KNODO_HOST_PORT:-9911}:9910"  # knodo-agent 健康/管理
+    environment:
+      # 路径 1: 首次激活 (24h 有效, 激活后写到 named volume 自动复用)
+      - KNODO_INSTALL_URL=${KNODO_INSTALL_URL:-}
+      # 路径 2: 长期凭证 (named volume 丢失时兜底, 见 .env.example)
+      - BACKEND_WS_URL=${BACKEND_WS_URL:-}
+      - API_TOKEN=${API_TOKEN:-}
+      - KNODO_AGENT_PORT=9910
+      # 可选代理
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-}
+    volumes:
+      # knodo 状态 (NFS, 替代原 named volume)
+      - njs-knodo-knodo:/home/workspace/.knodo
+      # 项目代码 (NFS, 172.25.93.9:/data-volumes, njs 当前是空的, 备用)
+      - njs-knodo-project:/home/workspace/project
+    # ---- Traefik 路由 ----
+    # NJS_KNODO_HOST 在 .env 里设, 例: njs-knodo.example.com
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.njs-knodo-ovss.rule=Host(`${NJS_KNODO_HOST:?NJS_KNODO_HOST required}`)"
+      - "traefik.http.routers.njs-knodo-ovss.entrypoints=websecure"
+      - "traefik.http.routers.njs-knodo-ovss.tls=true"
+      - "traefik.http.routers.njs-knodo-ovss.tls.certresolver=letsencrypt"
+      - "traefik.http.services.njs-knodo-ovss.loadbalancer.server.port=3000"
+      - "traefik.http.routers.njs-knodo-ovss.middlewares=secure-headers@file"
+    networks:
+      - traefik-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/healthz || exit 0"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  njs-knodo-knodo:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=172.25.93.9,rw,sync,hard,intr,noatime
+      device: ":/data-volumes/njs-knodo/knodo"
+  njs-knodo-project:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=172.25.93.9,rw,sync,hard,intr,noatime
+      device: ":/data-volumes/njs-knodo/project"
+
+networks:
+  traefik-net:
+    external: true
+    name: traefik-net

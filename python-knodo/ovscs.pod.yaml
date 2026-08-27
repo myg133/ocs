@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: py-knodo-ovss-config
+data:
+  settings.json: |
+    {
+        "editor.fontSize": 16,
+        "editor.fontFamily": "'JetBrains Mono', Consolas, 'Courier New', monospace",
+        "workbench.iconTheme": "material-icon-theme",
+        "workbench.colorTheme": "Dracula Theme Soft",
+        "extensions.ignoreRecommendations": true
+    }
+
+---
+
+# knodo 凭证 ConfigMap (跟 pod 一起 apply)
+# 二选一:
+#   - KNODO_INSTALL_URL: 首次激活用, 24h 有效, 激活成功后可以删掉改用长期凭证
+#   - BACKEND_WS_URL + API_TOKEN: 长期凭证, 绕过 24h 限制 (但需要二进制预装)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: py-knodo-config
+data:
+  # 首次部署: 填入 knodo web UI 生成的安装 URL
+  KNODO_INSTALL_URL: "https://anchnet.knodo.vip/api/v1/public/install/local/98f56628878655a27c51ede6911a7e97dd467c40469b55bfe094ed5ba6ff8d6f?origin=https%3A%2F%2Fanchnet.knodo.vip"
+  # 激活完成后切到下面这种 (URL 删掉, 用长期凭证):
+  # BACKEND_WS_URL: "wss://anchnet.knodo.vip/agent/..."
+  # API_TOKEN: "eyJhbGciOi..."
+  KNODO_AGENT_PORT: "9910"
+  # 可选: HTTP_PROXY / HTTPS_PROXY / NO_PROXY
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: openvscode-server
+spec:
+  containers:
+  - name: py-knodo-ovss
+    image: myg133/openvscode-server:python-knodo
+    ports:
+    - name: ovss
+      containerPort: 3000
+      hostPort: 3000
+    - name: knodo-agent   # knodo 本地 agent 管理端口 (健康检查 / 升级用)
+      containerPort: 9910
+      hostPort: 9910
+    envFrom:
+    - configMapRef:
+        name: py-knodo-config    # 注入 KNODO_INSTALL_URL / BACKEND_WS_URL / API_TOKEN / KNODO_AGENT_PORT
+    volumeMounts:
+    - name: ovss-config-volume
+      mountPath: /home/workspace/.openvscode-server/data/Machine/settings.json
+      subPath: settings.json
+    - name: project-volume
+      mountPath: /home/workspace/project
+    - name: knodo-data-volume   # 持久化 agent.env, 避免每次重启都重新激活
+      mountPath: /home/workspace/.knodo
+  volumes:
+  - name: ovss-config-volume
+    configMap:
+      name: py-knodo-ovss-config
+  - name: project-volume
+    hostPath:
+      path: /mnt/e/MyCode/openvscode-server
+      type: Directory
+  - name: knodo-data-volume
+    hostPath:                       # dev 场景用 hostPath 持久化最简单, 生产换 PVC
+      path: /var/lib/knodo-data/py-knodo
+      type: DirectoryOrCreate

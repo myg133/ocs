@@ -1,0 +1,36 @@
+# =============================================================================
+# 共享中间件 (Traefik file provider 加载, watch=true 自动重载)
+# 在 service labels 里这样引用:
+#   traefik.http.routers.<name>.middlewares=secure-headers@file
+# =============================================================================
+
+http:
+  middlewares:
+    # 安全响应头
+    secure-headers:
+      headers:
+        frameDeny: true
+        sslRedirect: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customRequestHeaders:
+          X-Forwarded-Proto: https
+        customResponseHeaders:
+          X-Robots-Tag: "noindex, nofollow"
+
+    # 限流 (knodo 容器不在此限, 留着备用)
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+
+    # WebSocket 长连接 (openvscode-server 大量用 WS)
+    # 一般不用, Traefik v3 自动支持 WS, 这里只是占位
+    ws-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Proto: https

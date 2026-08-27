@@ -1,0 +1,16 @@
+# 本地覆盖
+.env
+.env.knodo-backup
+.env.*.local
+
+# knodo 持久化数据 (不存代码仓, 在 named volume 里)
+**/knodo-data/
+
+# docker 配置备份
+.docker-config-backup/
+
+# 临时探查脚本
+scripts/probe-*.sh
+scripts/probe-*.py
+scripts/verify-*.sh
+scripts/analyze_*.py
