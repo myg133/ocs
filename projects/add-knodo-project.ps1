@@ -23,18 +23,6 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# ---- 端口分配 (自动找空闲端口, 从 3200/3300 起) ----
-$existingDirs = Get-ChildItem -Directory | Where-Object { $_.Name -ne 'add-knodo-project.ps1' }
-$pyCount = ($existingDirs | Where-Object { (Get-Content "$($_.Name)\docker-compose.yml" -ErrorAction SilentlyContinue) -match ':py-knodo' }).Count
-$njsCount = ($existingDirs | Where-Object { (Get-Content "$($_.Name)\docker-compose.yml" -ErrorAction SilentlyContinue) -match ':njs-knodo' }).Count
-
-if ($Base -eq 'py') {
-    $ovssPort = 3200 + $pyCount * 100   # 3200, 3400, 3600, ...
-} else {
-    $ovssPort = 3300 + $njsCount * 100  # 3300, 3500, 3700, ...
-}
-$knodoPort = $ovssPort + 20              # 3200 -> 9920, 3300 -> 9930
-
 # ---- slug = 项目名第一段, 大写 (e.g. anspire-bi-frontend -> ANSPIRE) ----
 $slug = ($Name -split '-')[0].ToUpper()
 $routerName = $Name -split '-' | Select-Object -Skip 1 | Select-Object -First 1
@@ -62,10 +50,9 @@ services:
     image: myg133/openvscode-server:$Base-knodo
     container_name: ocs-$Name
     restart: unless-stopped
-    ports:
-      # host 端口 (自动分配: $ovssPort / $knodoPort)
-      - "`${OVSS_HOST_PORT:-$ovssPort}:3000"
-      - "`${KNODO_HOST_PORT:-$knodoPort}:9910"
+    # host 端口不暴露, 外部访问全走 Traefik
+    # 调试: docker exec -it ocs-$Name bash
+    #       docker exec ocs-$Name curl 127.0.0.1:9910/health
     environment:
       - KNODO_INSTALL_URL=`${KNODO_INSTALL_URL:-}
       - BACKEND_WS_URL=`${BACKEND_WS_URL:-}
@@ -122,10 +109,6 @@ KNODO_INSTALL_URL=https://anchnet.knodo.vip/api/v1/public/install/local/<YOUR_TO
 
 # Traefik 路由域名 (泛域 *.localdev.anspire.cn 已签 cert)
 $($slug)HOST=$routerName.localdev.anspire.cn
-
-# host 端口 (跟其他项目错开)
-OVSS_HOST_PORT=$ovssPort
-KNODO_HOST_PORT=$knodoPort
 "@
 
 # ---- README.md 模板 ----
@@ -171,7 +154,6 @@ Write-Host "  2. cp .env.example .env && vi .env  (填 KNODO_INSTALL_URL + $slug
 Write-Host "  3. 服务器: ssh 172.25.93.9 \"mkdir -p /data-volumes/$Name/{knodo,project} && chmod 777 /data-volumes/$Name/\""
 Write-Host "  4. 服务器: cd /path/to/projects/$Name && docker pull myg133/openvscode-server:$Base-knodo && docker compose up -d"
 Write-Host ""
-Write-Host "端口自动分配: OVS=$ovssPort / knodo=$knodoPort" -ForegroundColor Yellow
 Write-Host "域名自动分配: $routerName.localdev.anspire.cn" -ForegroundColor Yellow
 Write-Host "Traefik router: $routerName" -ForegroundColor Yellow
 Write-Host "NFS 路径: /data-volumes/$Name/{knodo,project}" -ForegroundColor Yellow

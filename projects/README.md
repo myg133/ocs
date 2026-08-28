@@ -57,13 +57,12 @@ git push
 
 ## 端口分配约定
 
-| 项目 | OVS port | knodo-agent port | 备注 |
-|---|---|---|---|
-| base `:py-knodo` | 3000 | 9910 | 默认 |
-| base `:njs-knodo` | 3001 | 9911 | 默认 |
-| anspire-open-llm-dify-plugin | 3200 | 9920 | py 项目 |
-| anspire-search-frontend | 3300 | 9930 | njs 项目 |
-| 新项目 | 3000+ | 9910+ | 跟现有错开即可 |
+**所有项目统一用内部 3000 / 9910，host 端口不暴露**——外部访问全走 Traefik。
+
+- 容器内 `3000` = openvscode-server
+- 容器内 `9910` = knodo-agent
+- 外部访问走 Traefik + 泛域 cert
+- 调试用 `docker exec <container> curl 127.0.0.1:3000` / `9910`
 
 ## 域名分配约定
 

@@ -30,8 +30,8 @@ docker logs ocs-anspire-open-llm-dify-plugin -f
 ## 验证
 
 ```bash
-# knodo-agent 健康
-curl http://localhost:9920/health
+# knodo-agent 健康 (容器内)
+docker exec ocs-anspire-open-llm-dify-plugin curl 127.0.0.1:9910/health
 
 # OCS UI (走 Traefik 域名)
 curl -k https://diffy.localdev.anspire.cn

@@ -10,10 +10,9 @@ services:
     image: myg133/openvscode-server:py-knodo
     container_name: ocs-anspire-open-llm-dify-plugin
     restart: unless-stopped
-    ports:
-      # host 端口跟 base (3000/9910) 和其他项目错开
-      - "${OVSS_HOST_PORT:-3200}:3000"   # openvscode-server web UI
-      - "${KNODO_HOST_PORT:-9920}:9910"  # knodo-agent 健康/管理
+    # host 端口不暴露, 外部访问全走 Traefik (diffy.localdev.anspire.cn)
+    # 调试: docker exec -it ocs-anspire-open-llm-dify-plugin bash
+    #       docker exec ocs-anspire-open-llm-dify-plugin curl 127.0.0.1:9910/health
     environment:
       # ---- knodo 凭证 (entrypoint.sh 三选一) ----
       - KNODO_INSTALL_URL=${KNODO_INSTALL_URL:-}

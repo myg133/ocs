@@ -10,10 +10,9 @@ services:
     image: myg133/openvscode-server:njs-knodo
     container_name: ocs-anspire-search-frontend
     restart: unless-stopped
-    ports:
-      # host 端口跟 base (3001/9911) 和其他项目错开
-      - "${OVSS_HOST_PORT:-3300}:3000"   # openvscode-server web UI
-      - "${KNODO_HOST_PORT:-9930}:9910"  # knodo-agent 健康/管理
+    # host 端口不暴露, 外部访问全走 Traefik (search.localdev.anspire.cn)
+    # 调试: docker exec -it ocs-anspire-search-frontend bash
+    #       docker exec ocs-anspire-search-frontend curl 127.0.0.1:9910/health
     environment:
       # ---- knodo 凭证 (entrypoint.sh 三选一) ----
       - KNODO_INSTALL_URL=${KNODO_INSTALL_URL:-}
