@@ -32,7 +32,7 @@ services:
     # 证书用 traefik.yml 里的 tls.certificates 静态加载 (acme.sh 签的 *.localdev.anspire.cn)
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.search.rule=Host(`${SEARCH_HOST:?SEARCH_HOST required}`)"
+      - "traefik.http.routers.search.rule=Host(`${OCS_HOST:?OCS_HOST required}`)"
       - "traefik.http.routers.search.entrypoints=websecure"
       - "traefik.http.routers.search.tls=true"
       - "traefik.http.services.search.loadbalancer.server.port=3000"

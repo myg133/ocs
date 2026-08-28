@@ -42,7 +42,7 @@ Copy-Item anspire-open-llm-dify-plugin -Recurse -Destination <new-project>
 #    - volumes: 改 NFS 路径
 
 # 3. 改 .env.example
-#    - <SLUG>_HOST=<slug>.localdev.anspire.cn
+#    - OCS_HOST=<slug>.localdev.anspire.cn  (所有项目统一用 OCS_HOST)
 #    - 改端口 (避免跟现有项目冲突)
 
 # 4. 改 README.md

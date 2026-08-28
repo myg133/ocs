@@ -23,10 +23,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# ---- slug = 项目名第一段, 大写 (e.g. anspire-bi-frontend -> ANSPIRE) ----
-$slug = ($Name -split '-')[0].ToUpper()
-$routerName = $Name -split '-' | Select-Object -Skip 1 | Select-Object -First 1
-if (-not $routerName) { $routerName = $slug.ToLower() }
+# ---- router name = 项目名第二段 (e.g. anspire-search-frontend -> 'search') ----
+# Traefik router name 必须项目特定 (避免冲突), 但域名变量统一用 OCS_HOST
+$routerName = ($Name -split '-') | Select-Object -Skip 1 | Select-Object -First 1
+if (-not $routerName) { $routerName = $Name }
 $RouterName = $routerName.Substring(0, 1).ToUpper() + $routerName.Substring(1).ToLower()
 
 # ---- 项目目录 ----
@@ -66,7 +66,7 @@ services:
       - project-data:/home/workspace/project
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.$routerName.rule=Host(`${$slug`HOST:?$slug`HOST required})"
+      - "traefik.http.routers.$routerName.rule=Host(`${OCS_HOST:?OCS_HOST required})"
       - "traefik.http.routers.$routerName.entrypoints=websecure"
       - "traefik.http.routers.$routerName.tls=true"
       - "traefik.http.services.$routerName.loadbalancer.server.port=3000"
@@ -107,8 +107,9 @@ $envExample = @"
 # knodo 首次激活 URL (24h 有效, 激活后写到 NFS volume 自动复用)
 KNODO_INSTALL_URL=https://anchnet.knodo.vip/api/v1/public/install/local/<YOUR_TOKEN>?origin=https%3A%2F%2Fanchnet.knodo.vip
 
-# Traefik 路由域名 (泛域 *.localdev.anspire.cn 已签 cert)
-$($slug)HOST=$routerName.localdev.anspire.cn
+# Traefik 路由域名 (所有项目统一用 OCS_HOST)
+# 泛域 *.localdev.anspire.cn 已签 cert
+OCS_HOST=$routerName.localdev.anspire.cn
 "@
 
 # ---- README.md 模板 ----
@@ -150,7 +151,7 @@ Write-Host "项目骨架已生成: $projectDir" -ForegroundColor Green
 Write-Host ""
 Write-Host "下一步:" -ForegroundColor Cyan
 Write-Host "  1. cd $Name"
-Write-Host "  2. cp .env.example .env && vi .env  (填 KNODO_INSTALL_URL + $slug`HOST)"
+Write-Host "  2. cp .env.example .env && vi .env  (填 KNODO_INSTALL_URL + OCS_HOST)"
 Write-Host "  3. 服务器: ssh 172.25.93.9 \"mkdir -p /data-volumes/$Name/{knodo,project} && chmod 777 /data-volumes/$Name/\""
 Write-Host "  4. 服务器: cd /path/to/projects/$Name && docker pull myg133/openvscode-server:$Base-knodo && docker compose up -d"
 Write-Host ""
