@@ -1,0 +1,66 @@
+# =============================================================================
+# anspire-open-llm-dify-plugin 项目部署
+# 基于 base image: myg133/openvscode-server:py-knodo
+# base 镜像更新只需 docker pull myg133/openvscode-server:py-knodo + restart
+# 无 Dockerfile, 项目目录只有 compose + env 配置
+# =============================================================================
+
+services:
+  openvscode-server:
+    image: myg133/openvscode-server:py-knodo
+    container_name: ocs-anspire-open-llm-dify-plugin
+    restart: unless-stopped
+    ports:
+      # host 端口跟 base (3000/9910) 和其他项目错开
+      - "${OVSS_HOST_PORT:-3200}:3000"   # openvscode-server web UI
+      - "${KNODO_HOST_PORT:-9920}:9910"  # knodo-agent 健康/管理
+    environment:
+      # ---- knodo 凭证 (entrypoint.sh 三选一) ----
+      - KNODO_INSTALL_URL=${KNODO_INSTALL_URL:-}
+      - BACKEND_WS_URL=${BACKEND_WS_URL:-}
+      - API_TOKEN=${API_TOKEN:-}
+      - KNODO_AGENT_PORT=9910
+      # 可选代理
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-}
+    volumes:
+      # knodo 状态 (NFS, 替代 named volume)
+      - knodo-state:/home/workspace/.knodo
+      # 项目代码 (NFS)
+      - project-data:/home/workspace/project
+    # ---- Traefik 路由 (走 traefik-net 共享网络) ----
+    # 证书用 traefik.yml 里的 tls.certificates 静态加载 (acme.sh 签的 *.localdev.anspire.cn)
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.diffy.rule=Host(`${DIFFY_HOST:?DIFFY_HOST required}`)"
+      - "traefik.http.routers.diffy.entrypoints=websecure"
+      - "traefik.http.routers.diffy.tls=true"
+      - "traefik.http.services.diffy.loadbalancer.server.port=3000"
+    networks:
+      - traefik-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/healthz || exit 0"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  knodo-state:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=172.25.93.9,rw,sync,hard,intr,noatime
+      device: ":/data-volumes/anspire-open-llm-dify-plugin/knodo"
+  project-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=172.25.93.9,rw,sync,hard,intr,noatime
+      device: ":/data-volumes/anspire-open-llm-dify-plugin/project"
+
+networks:
+  traefik-net:
+    external: true
+    name: traefik-net

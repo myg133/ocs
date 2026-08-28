@@ -1,0 +1,24 @@
+# =============================================================================
+# projects/ 通用 .gitignore
+# 每个项目子目录: 排除 .env (含 KNODO 凭证) / 排除 .env.*
+# =============================================================================
+
+# 任何 .env 都不入库 (但 .env.example 保留)
+.env
+.env.*
+*.env
+!.env.example
+
+# python 缓存
+__pycache__/
+*.pyc
+
+# node
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
