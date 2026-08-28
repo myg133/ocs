@@ -4,7 +4,7 @@ OCS + knodo 项目部署。
 
 ## 架构
 
-- **Base image**: `myg133/openvscode-server:py-knodo` (推到 Docker Hub 的 OCS + knodo Python base)
+- **Base image**: `myg133/openvscode-server:python-knodo` (推到 Docker Hub 的 OCS + knodo Python base)
 - **域名**: `diffy.localdev.anspire.cn` (走泛域 `*.localdev.anspire.cn` cert)
 - **端口**: 3000 (UI) / 9910 (knodo-agent)，host 端口 3200/9920（错开 base 默认）
 - **存储**: NFS `172.25.93.9:/data-volumes/anspire-open-llm-dify-plugin/{knodo,project}`
@@ -18,7 +18,7 @@ cp .env.example .env
 vi .env                     # 填 KNODO_INSTALL_URL + DIFFY_HOST
 
 # 2. 拉 base image (server 端)
-docker pull myg133/openvscode-server:py-knodo
+docker pull myg133/openvscode-server:python-knodo
 
 # 3. 起容器
 docker compose up -d
@@ -42,11 +42,11 @@ docker exec ocs-anspire-open-llm-dify-plugin bash /usr/local/bin/test-knodo-inte
 
 ## Base 镜像更新
 
-base 镜像 (`py-knodo`) 改了之后：
+base 镜像 (`python-knodo`) 改了之后：
 
 ```bash
 # 1. server 端拉新 base
-docker pull myg133/openvscode-server:py-knodo
+docker pull myg133/openvscode-server:python-knodo
 
 # 2. 重启容器 (用新 base 启动)
 docker compose up -d --force-recreate

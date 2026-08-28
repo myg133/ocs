@@ -6,12 +6,13 @@
 
 ```
 ocs/  (this repo)
-├── python-knodo/        # base image 源: myg133/openvscode-server:py-knodo
+├── python-knodo/        # base image 源: myg133/openvscode-server:python-knodo
 ├── njs-knodo/           # base image 源: myg133/openvscode-server:njs-knodo
 ├── traefik-stack/       # 反代 + 静态 wildcard cert
 ├── projects/            # ← 业务项目层 (本目录)
-│   ├── anspire-open-llm-dify-plugin/   # FROM :py-knodo
+│   ├── anspire-open-llm-dify-plugin/   # FROM :python-knodo
 │   ├── anspire-search-frontend/        # FROM :njs-knodo
+│   ├── anspire-open-man-backend/       # FROM :python-knodo
 │   └── <future-project>/
 └── AGENTS.md            # 项目架构 + 部署文档
 ```
@@ -36,7 +37,7 @@ cd D:\MyCodes\docker\ocs\projects
 Copy-Item anspire-open-llm-dify-plugin -Recurse -Destination <new-project>
 
 # 2. 改 docker-compose.yml
-#    - image: myg133/openvscode-server:<py-knodo|njs-knodo>
+#    - image: myg133/openvscode-server:<python-knodo|njs-knodo>
 #    - container_name: ocs-<new-project>
 #    - traefik label: 改 router 名 / Host
 #    - volumes: 改 NFS 路径

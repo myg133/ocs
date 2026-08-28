@@ -4,7 +4,7 @@ OCS + knodo 项目部署 (Python)。
 
 ## 架构
 
-- **Base image**: `myg133/openvscode-server:py-knodo`
+- **Base image**: `myg133/openvscode-server:python-knodo`
 - **域名**: `admin-backend.localdev.anspire.cn` (走泛域 `*.localdev.anspire.cn` cert)
 - **存储**: NFS `172.25.93.9:/data-volumes/anspire-open-man-backend/{knodo,project}`
 - **反代**: Traefik v3.7 静态 wildcard cert (ZeroSSL)
@@ -21,7 +21,7 @@ cp .env.example .env
 vi .env   # 填 KNODO_INSTALL_URL + OCS_HOST
 
 # 3. 拉 base + 启动
-docker pull myg133/openvscode-server:py-knodo
+docker pull myg133/openvscode-server:python-knodo
 docker compose up -d
 ```
 
@@ -44,6 +44,6 @@ docker logs traefik --since 1m 2>&1 | grep admin-backend | tail -5
 ## Base 镜像更新
 
 ```bash
-docker pull myg133/openvscode-server:py-knodo
+docker pull myg133/openvscode-server:python-knodo
 docker compose up -d --force-recreate
 ```

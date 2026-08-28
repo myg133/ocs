@@ -18,7 +18,7 @@
 
 param(
     [Parameter(Mandatory = $true)][string]$Name,   # 项目名 (kebab-case, e.g. anspire-bi-frontend)
-    [Parameter(Mandatory = $true)][ValidateSet('py', 'njs')][string]$Base  # base 类型: py 或 njs
+    [Parameter(Mandatory = $true)][ValidateSet('python', 'njs')][string]$Base  # base 类型: python 或 njs (对应镜像标签 python-knodo / njs-knodo)
 )
 
 $ErrorActionPreference = 'Stop'

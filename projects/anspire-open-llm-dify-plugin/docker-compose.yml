@@ -1,13 +1,13 @@
 # =============================================================================
 # anspire-open-llm-dify-plugin 项目部署
-# 基于 base image: myg133/openvscode-server:py-knodo
-# base 镜像更新只需 docker pull myg133/openvscode-server:py-knodo + restart
+# 基于 base image: myg133/openvscode-server:python-knodo
+# base 镜像更新只需 docker pull myg133/openvscode-server:python-knodo + restart
 # 无 Dockerfile, 项目目录只有 compose + env 配置
 # =============================================================================
 
 services:
   openvscode-server:
-    image: myg133/openvscode-server:py-knodo
+    image: myg133/openvscode-server:python-knodo
     container_name: ocs-anspire-open-llm-dify-plugin
     restart: unless-stopped
     # host 端口不暴露, 外部访问全走 Traefik (diffy.localdev.anspire.cn)

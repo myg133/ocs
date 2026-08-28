@@ -6,7 +6,7 @@
 
 services:
   openvscode-server:
-    image: myg133/openvscode-server:py-knodo
+    image: myg133/openvscode-server:python-knodo
     container_name: ocs-anspire-open-man-backend
     restart: unless-stopped
     # host 端口不暴露, 外部访问全走 Traefik (admin-backend.localdev.anspire.cn)
