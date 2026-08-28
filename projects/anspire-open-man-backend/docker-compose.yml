@@ -1,0 +1,58 @@
+# =============================================================================
+# anspire-open-man-backend 项目部署
+# 基于 base image: myg133/openvscode-server:py-knodo
+# 无 Dockerfile, 项目目录只有 compose + env 配置
+# =============================================================================
+
+services:
+  openvscode-server:
+    image: myg133/openvscode-server:py-knodo
+    container_name: ocs-anspire-open-man-backend
+    restart: unless-stopped
+    # host 端口不暴露, 外部访问全走 Traefik (admin-backend.localdev.anspire.cn)
+    # 调试: docker exec -it ocs-anspire-open-man-backend bash
+    #       docker exec ocs-anspire-open-man-backend curl 127.0.0.1:9910/health
+    environment:
+      - KNODO_INSTALL_URL=${KNODO_INSTALL_URL:-}
+      - BACKEND_WS_URL=${BACKEND_WS_URL:-}
+      - API_TOKEN=${API_TOKEN:-}
+      - KNODO_AGENT_PORT=9910
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-}
+    volumes:
+      - knodo-state:/home/workspace/.knodo
+      - project-data:/home/workspace/project
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.admin-backend.rule=Host(`${OCS_HOST:?OCS_HOST required}`)"
+      - "traefik.http.routers.admin-backend.entrypoints=websecure"
+      - "traefik.http.routers.admin-backend.tls=true"
+      - "traefik.http.services.admin-backend.loadbalancer.server.port=3000"
+    networks:
+      - traefik-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/healthz || exit 0"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  knodo-state:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=172.25.93.9,rw,sync,hard,intr,noatime
+      device: ":/data-volumes/anspire-open-man-backend/knodo"
+  project-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=172.25.93.9,rw,sync,hard,intr,noatime
+      device: ":/data-volumes/anspire-open-man-backend/project"
+
+networks:
+  traefik-net:
+    external: true
+    name: traefik-net
