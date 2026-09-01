@@ -1,0 +1,24 @@
+# 本地覆盖
+.env
+.env.knodo-backup
+.env.*.local
+
+# knodo 持久化数据 (不存代码仓, 在 named volume 里)
+**/knodo-data/
+
+# docker 配置备份
+.docker-config-backup/
+
+# 临时探查脚本
+scripts/probe-*.sh
+scripts/probe-*.py
+scripts/verify-*.sh
+scripts/analyze_*.py
+
+# 顶层重复脚本 (PowerShell Copy-Item -Recurse 把 scripts/ 里的文件也拷到顶层了, 删 git 跟踪保留本地)
+# Dockerfile 只 COPY scripts/, 顶层这些文件不影响 build, 但加进 git 会冗余
+/entrypoint.sh
+/install-knodo-agent.sh
+/render-agent-env.sh
+/extract-knodo-credentials.sh
+/test-knodo-integration.sh
