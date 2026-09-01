@@ -90,22 +90,32 @@ chmod 777 /data-volumes/<project-name>/
 
 `add-knodo-project.ps1 <name> <base>` 一键生成项目骨架（base = `py` 或 `njs`）。
 
-## ⚠️ 必须清空 base image 继承的代理 env
+## ⚠️ 代理配置: 在 .env 配, 统一大写
 
 `myg133/openvscode-server:base-latest` 这个 base image **烤了** `HTTP_PROXY=http://172.25.93.8:10808` 等公司代理 env。**所有** knodo 容器继承，**knodo 官方 install 脚本走代理到 CDN 只有 155 KB/s**（30+ 分钟下载）。
 
-**强制清空 4 个 env**（大写 + 小写都要清，curl 优先用小写）：
+**修法**: 在 `.env` 里用同名大写 env vars 覆盖 base image 烤的（docker-compose 注入的 env vars 优先级 > image 内置 env vars）。**不要**在 `docker-compose.yml` 写清空行（会跟 .env 抢）。
 
-```yaml
-# docker-compose.yml environment 段必须加这 6 行
-environment:
-  - HTTP_PROXY=
-  - HTTPS_PROXY=
-  - http_proxy=
-  - https_proxy=
-  - NO_PROXY=localhost,127.0.0.1,anchnet.knodo.vip
-  - no_proxy=localhost,127.0.0.1,anchnet.knodo.vip
+**默认 .env 模板已配好**（每个项目的 `.env.example` 都有这段）：
+
+```bash
+# 统一大写, 默认留空走直连 (1.12 MB/s)
+HTTP_PROXY=
+HTTPS_PROXY=
+NO_PROXY=localhost,127.0.0.1,anchnet.knodo.vip,*.localdev.anspire.cn
 ```
 
-**不这么做**：knodo 容器启动 30+ 分钟下载，**浪费时间**。
-**做了之后**：1.12 MB/s 直连，**7 倍加速**，**1-2 分钟**下载完。
+**关键**:
+- **大小写统一**（全大写），别混用
+- `docker-compose.yml` 的 `environment:` 段**不写**任何代理 env（让 .env 接管）
+- 想走公司代理: 取消注释 + 填值（仍受公司代理限速影响）
+
+**`docker-compose.yml` 的 environment 段只配这 4 个 knodo 凭证**：
+
+```yaml
+environment:
+  - KNODO_INSTALL_URL=${KNODO_INSTALL_URL:-}
+  - BACKEND_WS_URL=${BACKEND_WS_URL:-}
+  - API_TOKEN=${API_TOKEN:-}
+  - KNODO_AGENT_PORT=9910
+```

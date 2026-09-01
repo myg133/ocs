@@ -58,16 +58,11 @@ services:
       - BACKEND_WS_URL=`${BACKEND_WS_URL:-}
       - API_TOKEN=`${API_TOKEN:-}
       - KNODO_AGENT_PORT=9910
-      # === 清空 base image 继承的公司代理 (172.25.93.8:10808) ===
-      # base image (myg133/openvscode-server:base-latest) 烤了 HTTP_PROXY 等 env,
-      # 走公司代理到 knodo CDN 慢 (155 KB/s). 显式清空让 curl 直连 (1.12 MB/s, 7x 加速)
-      # 大写 + 小写都要清 (curl 优先用小写)
-      - HTTP_PROXY=
-      - HTTPS_PROXY=
-      - http_proxy=
-      - https_proxy=
-      - NO_PROXY=localhost,127.0.0.1,anchnet.knodo.vip
-      - no_proxy=localhost,127.0.0.1,anchnet.knodo.vip
+      # === 代理 env vars 在 .env 配,统一大写 (HTTPS_PROXY / NO_PROXY / HTTP_PROXY) ===
+      # base image 烤了 HTTP_PROXY=http://172.25.93.8:10808 (公司代理,慢),
+      # docker-compose env 段直接覆盖 .env 注入的同名变量
+      # 所以这里不写任何代理 env,让 .env 的值生效
+      # 建议: .env 留空走直连 (1.12 MB/s), 或填公司代理 (慢)
     volumes:
       - knodo-state:/home/workspace/.knodo
       - project-data:/home/workspace/project
@@ -111,12 +106,25 @@ $envExample = @"
 # $Name 项目 .env 模板
 # 复制: cp .env.example .env
 
-# knodo 首次激活 URL (24h 有效, 激活后写到 NFS volume 自动复用)
+# ---- 必填: knodo 首次激活 URL (24h 有效) ----
+# 拿: 登录 knodo web UI -> 本地执行机 -> 复制安装命令里的 URL
+# 激活后会自动写到 NFS volume 里, 后续重启自动复用
 KNODO_INSTALL_URL=https://anchnet.knodo.vip/api/v1/public/install/local/<YOUR_TOKEN>?origin=https%3A%2F%2Fanchnet.knodo.vip
 
-# Traefik 路由域名 (所有项目统一用 OCS_HOST)
-# 泛域 *.localdev.anspire.cn 已签 cert
+# ---- 必填: Traefik 路由域名 (所有项目统一用 OCS_HOST) ----
+# DNSPod 加泛域 A 记录: *.localdev  -> 172.25.93.9
+# 这里填子域, Traefik 用静态 wildcard cert serve
 OCS_HOST=$routerName.localdev.anspire.cn
+
+# ---- 代理 (统一大写, 默认留空走直连) ----
+# base image (myg133/openvscode-server:base-latest) 烤了
+#   HTTP_PROXY=http://172.25.93.8:10808 (公司代理, 慢, 155 KB/s)
+# .env 写同名空值会覆盖 base image 烤的, 让容器直连 (1.12 MB/s, 7x 加速)
+# 走公司代理: 取消注释 + 填值
+# 关键: 大小写要统一 (全大写), 跟 .env 里的写法保持一致
+HTTP_PROXY=
+HTTPS_PROXY=
+NO_PROXY=localhost,127.0.0.1,anchnet.knodo.vip,*.localdev.anspire.cn
 "@
 
 # ---- README.md 模板 ----
