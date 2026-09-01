@@ -58,9 +58,16 @@ services:
       - BACKEND_WS_URL=`${BACKEND_WS_URL:-}
       - API_TOKEN=`${API_TOKEN:-}
       - KNODO_AGENT_PORT=9910
-      - HTTP_PROXY=`${HTTP_PROXY:-}
-      - HTTPS_PROXY=`${HTTPS_PROXY:-}
-      - NO_PROXY=`${NO_PROXY:-}
+      # === 清空 base image 继承的公司代理 (172.25.93.8:10808) ===
+      # base image (myg133/openvscode-server:base-latest) 烤了 HTTP_PROXY 等 env,
+      # 走公司代理到 knodo CDN 慢 (155 KB/s). 显式清空让 curl 直连 (1.12 MB/s, 7x 加速)
+      # 大写 + 小写都要清 (curl 优先用小写)
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - NO_PROXY=localhost,127.0.0.1,anchnet.knodo.vip
+      - no_proxy=localhost,127.0.0.1,anchnet.knodo.vip
     volumes:
       - knodo-state:/home/workspace/.knodo
       - project-data:/home/workspace/project

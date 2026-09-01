@@ -89,3 +89,23 @@ chmod 777 /data-volumes/<project-name>/
 ## 模板生成器
 
 `add-knodo-project.ps1 <name> <base>` 一键生成项目骨架（base = `py` 或 `njs`）。
+
+## ⚠️ 必须清空 base image 继承的代理 env
+
+`myg133/openvscode-server:base-latest` 这个 base image **烤了** `HTTP_PROXY=http://172.25.93.8:10808` 等公司代理 env。**所有** knodo 容器继承，**knodo 官方 install 脚本走代理到 CDN 只有 155 KB/s**（30+ 分钟下载）。
+
+**强制清空 4 个 env**（大写 + 小写都要清，curl 优先用小写）：
+
+```yaml
+# docker-compose.yml environment 段必须加这 6 行
+environment:
+  - HTTP_PROXY=
+  - HTTPS_PROXY=
+  - http_proxy=
+  - https_proxy=
+  - NO_PROXY=localhost,127.0.0.1,anchnet.knodo.vip
+  - no_proxy=localhost,127.0.0.1,anchnet.knodo.vip
+```
+
+**不这么做**：knodo 容器启动 30+ 分钟下载，**浪费时间**。
+**做了之后**：1.12 MB/s 直连，**7 倍加速**，**1-2 分钟**下载完。
