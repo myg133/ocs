@@ -1,0 +1,58 @@
+# =============================================================================
+# anspire-fde-hub 项目部署
+# 基于 base image: myg133/openvscode-server:rust-bun-knodo
+# 无 Dockerfile, 项目目录只有 compose + env 配置
+# =============================================================================
+
+services:
+  openvscode-server:
+    image: myg133/openvscode-server:rust-bun-knodo
+    container_name: ocs-anspire-fde-hub
+    restart: unless-stopped
+    # host 端口不暴露, 外部访问全走 Traefik (fde-hub.localdev.anspire.cn)
+    # 调试: docker exec -it ocs-anspire-fde-hub bash
+    #       docker exec ocs-anspire-fde-hub curl 127.0.0.1:9910/health
+    environment:
+      - KNODO_INSTALL_URL=${KNODO_INSTALL_URL:-}
+      - BACKEND_WS_URL=${BACKEND_WS_URL:-}
+      - API_TOKEN=${API_TOKEN:-}
+      - KNODO_AGENT_PORT=9910
+      - HTTP_PROXY=${HTTP_PROXY:-}
+      - HTTPS_PROXY=${HTTPS_PROXY:-}
+      - NO_PROXY=${NO_PROXY:-}
+    volumes:
+      - knodo-state:/home/workspace/.knodo
+      - project-data:/home/workspace/project
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fde-hub.rule=Host(`${OCS_HOST:?OCS_HOST required}`)"
+      - "traefik.http.routers.fde-hub.entrypoints=websecure"
+      - "traefik.http.routers.fde-hub.tls=true"
+      - "traefik.http.services.fde-hub.loadbalancer.server.port=3000"
+    networks:
+      - traefik-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/healthz || exit 0"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  knodo-state:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=172.25.93.9,rw,sync,hard,intr,noatime
+      device: ":/data-volumes/anspire-fde-hub/knodo"
+  project-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=172.25.93.9,rw,sync,hard,intr,noatime
+      device: ":/data-volumes/anspire-fde-hub/project"
+
+networks:
+  traefik-net:
+    external: true
+    name: traefik-net
