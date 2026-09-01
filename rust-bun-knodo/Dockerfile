@@ -18,32 +18,26 @@ FROM myg133/openvscode-server:base-latest
 # =============================================================================
 USER root
 
-# rustup: Rust 工具链 (rustc / cargo)
-# 不直接装 rustlang, 用 rustup-init 脚本装, 默认装 stable
-# CARGO_HOME / RUSTUP_HOME 显式设, 方便 bind mount 持久化
-ENV CARGO_HOME=/home/workspace/.cargo \
-    RUSTUP_HOME=/home/workspace/.rustup \
-    PATH=/home/workspace/.cargo/bin:$PATH
-
-# bun: 现代 JS/TS runtime (svelte/sveltekit 用)
-# 官方 install 脚本: https://bun.sh/install
-ENV BUN_INSTALL=/home/workspace/.bun \
-    PATH=/home/workspace/.bun/bin:$PATH
-
-RUN curl -fsSL --proto '=https' --tlsv1.2 https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal --no-modify-path ; \
-    curl -fsSL https://bun.sh/install | bash
-
-# knodo 安装脚本 require_cmd curl/tar/sha256sum (基础镜像已有)
-# git: knodo 脚本 ensure_git_available 兜底装
-# jq:  旁路渲染 env 时方便 (不强依赖)
-# 条件式装: 已存在跳过, 不污染 layer hash
-RUN command -v git >/dev/null 2>&1 || (apt-get update && apt-get install -y --no-install-recommends git) ; \
+# 先装 unzip (bun install 脚本要) + 条件式装 git/jq (knodo 脚本兜底要)
+RUN apt-get update && apt-get install -y --no-install-recommends unzip && rm -rf /var/lib/apt/lists/* ; \
+    command -v git >/dev/null 2>&1 || (apt-get update && apt-get install -y --no-install-recommends git) ; \
     command -v jq  >/dev/null 2>&1 || (apt-get update && apt-get install -y --no-install-recommends jq) ; \
     rm -rf /var/lib/apt/lists/*
 
-# HOME 统一到 /home/workspace (跟 pod.yaml/docker-compose 挂载路径对齐)
-# 跟 python-knodo/njs-knodo 一致
+# HOME 统一到 /home/workspace (跟 pod.yaml/docker-compose 挂载路径对齐, 跟 python-knodo/njs-knodo 一致)
 ENV HOME=/home/workspace
+
+# CARGO_HOME / RUSTUP_HOME / BUN_INSTALL 显式设, 装到 /home/workspace
+ENV CARGO_HOME=/home/workspace/.cargo \
+    RUSTUP_HOME=/home/workspace/.rustup \
+    BUN_INSTALL=/home/workspace/.bun \
+    PATH=/home/workspace/.cargo/bin:/home/workspace/.bun/bin:$PATH
+
+# 切到 openvscode-server 装 rustup + bun
+# (避免 USER root 时 $HOME=/home/workspace 跟 euid 拿到 /root 不一致触发的 warning)
+USER openvscode-server
+RUN curl -fsSL --proto '=https' --tlsv1.2 https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal --no-modify-path ; \
+    curl -fsSL https://bun.sh/install | bash
 
 # =============================================================================
 # Layer 2: rust + svelte 扩展 (vsix 从 marketplace 拉, 单 RUN 完成)
