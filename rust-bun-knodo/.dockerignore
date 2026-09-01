@@ -16,9 +16,9 @@ docker-compose.yml
 ovscs.pod.yaml
 README.md
 
-# 主机端工具 (Windows 脚本 / 备份提取脚本, 不在容器里跑)
+# 主机端工具 (Windows 脚本, 不在容器里跑)
+# 注释: extract-knodo-credentials.sh 进容器 (允许 docker exec 提取 BACKEND_WS_URL+API_TOKEN)
 scripts/backup-docker-mirrors.ps1
-scripts/extract-knodo-credentials.sh
 
 # docker 配置备份目录
 .docker-config-backup/
