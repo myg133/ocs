@@ -58,11 +58,17 @@ services:
       - BACKEND_WS_URL=`${BACKEND_WS_URL:-}
       - API_TOKEN=`${API_TOKEN:-}
       - KNODO_AGENT_PORT=9910
-      # === 代理 env vars 在 .env 配,统一大写 (HTTPS_PROXY / NO_PROXY / HTTP_PROXY) ===
-      # base image 烤了 HTTP_PROXY=http://172.25.93.8:10808 (公司代理,慢),
-      # docker-compose env 段直接覆盖 .env 注入的同名变量
-      # 所以这里不写任何代理 env,让 .env 的值生效
-      # 建议: .env 留空走直连 (1.12 MB/s), 或填公司代理 (慢)
+      # === 代理 env vars: 大写在 .env 配 (source of truth), 小写自动引用大写 ===
+      # base image 烤了 HTTP_PROXY=http://172.25.93.8:10808 (公司代理,慢, 155 KB/s)
+      # docker-compose 把 .env 注入的大写 env vars 直接覆盖 base image 烤的
+      # 小写 (https_proxy) 用 ${HTTPS_PROXY} 引用大写, 大小写始终一致, curl 直连
+      # 默认 .env 里 HTTPS_PROXY/HTTP_PROXY/NO_PROXY 都留空, 容器里 6 个 env vars 全是空 → 直连 (1.12 MB/s)
+      - HTTPS_PROXY=`${HTTPS_PROXY:-}
+      - https_proxy=`${HTTPS_PROXY:-}
+      - HTTP_PROXY=`${HTTP_PROXY:-}
+      - http_proxy=`${HTTP_PROXY:-}
+      - NO_PROXY=`${NO_PROXY:-}
+      - no_proxy=`${NO_PROXY:-}
     volumes:
       - knodo-state:/home/workspace/.knodo
       - project-data:/home/workspace/project
